@@ -5,6 +5,7 @@ ENV PHALCON_DEV_TOOLS_VERSION=3.2.0
 
 RUN echo "deb http://archive.debian.org/debian stretch main" > /etc/apt/sources.list
 RUN apt-get update && apt-get install -y libpq-dev && docker-php-ext-install pdo pdo_pgsql
+RUN pecl install mongodb-1.5.0 && echo "extension=mongodb.so" >> $PHP_INI_DIR/conf.d/mongodb.ini
 
 # Install PHP GD EXTENSION
 RUN apt-get update && apt-get install -y --allow-downgrades \
@@ -13,7 +14,6 @@ RUN apt-get update && apt-get install -y --allow-downgrades \
         libfreetype6-dev \
         libjpeg62-turbo-dev \
         libpng-dev \
-#    && docker-php-ext-install -j$(nproc) iconv mcrypt \
     && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
     && docker-php-ext-install -j$(nproc) gd
 
