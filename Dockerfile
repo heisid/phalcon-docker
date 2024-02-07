@@ -2,10 +2,12 @@ FROM php:7.2-apache
 
 ENV PHALCON_VERSION=3.2.2
 ENV PHALCON_DEV_TOOLS_VERSION=3.2.0
+ENV XDEBUG_VERSION=3.1.6
+ENV MONGODB_PHP_VERSION=1.5.0
 
 RUN echo "deb http://archive.debian.org/debian stretch main" > /etc/apt/sources.list
 RUN apt-get update && apt-get install -y libpq-dev && docker-php-ext-install pdo pdo_pgsql
-RUN pecl install mongodb-1.5.0 && echo "extension=mongodb.so" >> $PHP_INI_DIR/conf.d/mongodb.ini
+RUN pecl install mongodb-${MONGODB_PHP_VERSION} && echo "extension=mongodb.so" >> $PHP_INI_DIR/conf.d/mongodb.ini
 
 # Install PHP GD EXTENSION
 RUN apt-get update && apt-get install -y --allow-downgrades \
@@ -43,6 +45,13 @@ RUN pecl install apcu \
     && pecl install apcu_bc-1.0.3 \
     && docker-php-ext-enable apcu --ini-name 10-docker-php-ext-apcu.ini \
     && docker-php-ext-enable apc --ini-name 20-docker-php-ext-apc.ini
+
+# Xdebug
+RUN pecl install xdebug-${XDEBUG_VERSION}
+RUN docker-php-ext-enable xdebug
+RUN echo 'xdebug.mode=develop,debug' >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo 'xdebug.client_host=host.docker.internal' >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo 'xdebug.start_with_request=yes' >> /usr/local/etc/php/conf.d/xdebug.ini
 
 COPY 000-default.conf /etc/apache2/sites-available/000-default.conf
 
