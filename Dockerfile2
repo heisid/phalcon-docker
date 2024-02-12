@@ -1,0 +1,96 @@
+FROM php:7.2-apache
+
+# PSR for phalcon 4.x
+ARG PSR_VERSION=0.6.1
+
+ARG PHALCON_VERSION=3.4.3
+ARG PHALCON_EXT_PATH=php7/64bits
+
+# COPY docker-entrypoint.sh /usr/local/bin/
+
+# ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+RUN set -xe && \
+        # Compile PSR
+        curl -LO https://github.com/jbboehr/php-psr/archive/v${PSR_VERSION}.tar.gz && \
+        tar xzf ${PWD}/v${PSR_VERSION}.tar.gz && \
+        cd ${PWD}/php-psr-${PSR_VERSION} && \
+        phpize && \
+        ./configure && \
+        make && \
+        make test && \
+        make install
+
+RUN set -xe && \
+        # Compile Phalcon
+        curl -LO https://github.com/phalcon/cphalcon/archive/v${PHALCON_VERSION}.tar.gz && \
+        tar xzf ${PWD}/v${PHALCON_VERSION}.tar.gz && \
+        cd ${PWD}/cphalcon-${PHALCON_VERSION}/build/ && \
+        ./install
+
+# Install packages
+RUN apt-get update && apt-get install -y \
+        autoconf \
+        pkg-config \
+        libpng-dev \
+        zlib1g-dev \
+        libxml2-dev \
+        libzip-dev \
+        libonig-dev \
+        libpq-dev \
+        nano \
+        zip \
+        curl \
+        unzip \
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        libmcrypt-dev \
+    && apt-get install -y --no-install-recommends \
+        openssl \
+        libssl-dev \
+        libcurl4-openssl-dev \
+    && docker-php-ext-install gd \
+    && docker-php-ext-configure gd \
+    && docker-php-ext-install -j$(nproc) gd \
+    && docker-php-ext-install pdo_mysql \
+    && docker-php-ext-install mysqli \
+    && docker-php-ext-install zip \
+    && docker-php-source delete \
+    && docker-php-ext-install iconv mbstring \
+    && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
+    && docker-php-ext-install pdo pdo_pgsql pgsql
+
+# COPY vhost.conf /etc/apache2/sites-available/000-default.conf
+
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+RUN pecl install mongodb-1.4.2 \
+    && cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini \
+    && echo "extension=mongodb.so" >> /usr/local/etc/php/php.ini \
+    && echo "extension=psr.so" >> /usr/local/etc/php/php.ini \
+    && echo "extension=phalcon.so" >> /usr/local/etc/php/php.ini
+
+#INSTALL APCU
+# RUN pecl install apcu_bc
+# RUN pecl install apcu-${APCU_VERSION} && docker-php-ext-enable apcu
+# RUN echo "extension=apcu.so" >> /usr/local/etc/php/php.ini
+# RUN echo "apc.enable_cli=1" >> /usr/local/etc/php/php.ini
+# RUN echo "apc.enable=1" >> /usr/local/etc/php/php.ini
+#APCU
+
+# APCU
+RUN pecl install apcu \
+    && pecl install apcu_bc-1.0.3 \
+    && docker-php-ext-enable apcu --ini-name 10-docker-php-ext-apcu.ini \
+    && docker-php-ext-enable apc --ini-name 20-docker-php-ext-apc.ini
+
+# Xdebug
+RUN pecl install xdebug-${XDEBUG_VERSION}
+RUN docker-php-ext-enable xdebug
+RUN echo 'xdebug.mode=develop,debug' >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo 'xdebug.client_host=host.docker.internal' >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo 'xdebug.start_with_request=yes' >> /usr/local/etc/php/conf.d/xdebug.ini
+
+RUN chown -R www-data:www-data /var/www/html
+# Enable mod rewrite
+RUN a2enmod rewrite
