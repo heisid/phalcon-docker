@@ -85,6 +85,7 @@ RUN pecl install apcu \
     && docker-php-ext-enable apc --ini-name 20-docker-php-ext-apc.ini
 
 # Xdebug
+ENV XDEBUG_VERSION=3.1.6
 RUN pecl install xdebug-${XDEBUG_VERSION}
 RUN docker-php-ext-enable xdebug
 RUN echo 'xdebug.mode=develop,debug' >> /usr/local/etc/php/conf.d/xdebug.ini \
