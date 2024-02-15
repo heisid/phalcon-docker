@@ -1,14 +1,9 @@
 FROM php:7.2-apache
 
-# PSR for phalcon 4.x
 ARG PSR_VERSION=0.6.1
 
 ARG PHALCON_VERSION=3.4.3
 ARG PHALCON_EXT_PATH=php7/64bits
-
-# COPY docker-entrypoint.sh /usr/local/bin/
-
-# ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 RUN set -xe && \
         # Compile PSR
@@ -49,8 +44,7 @@ RUN apt-get update && apt-get install -y \
         openssl \
         libssl-dev \
         libcurl4-openssl-dev \
-    && docker-php-ext-install gd \
-    && docker-php-ext-configure gd \
+    && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/\
     && docker-php-ext-install -j$(nproc) gd \
     && docker-php-ext-install pdo_mysql \
     && docker-php-ext-install mysqli \
@@ -69,14 +63,6 @@ RUN pecl install mongodb-1.4.2 \
     && echo "extension=mongodb.so" >> /usr/local/etc/php/php.ini \
     && echo "extension=psr.so" >> /usr/local/etc/php/php.ini \
     && echo "extension=phalcon.so" >> /usr/local/etc/php/php.ini
-
-#INSTALL APCU
-# RUN pecl install apcu_bc
-# RUN pecl install apcu-${APCU_VERSION} && docker-php-ext-enable apcu
-# RUN echo "extension=apcu.so" >> /usr/local/etc/php/php.ini
-# RUN echo "apc.enable_cli=1" >> /usr/local/etc/php/php.ini
-# RUN echo "apc.enable=1" >> /usr/local/etc/php/php.ini
-#APCU
 
 # APCU
 RUN pecl install apcu \
